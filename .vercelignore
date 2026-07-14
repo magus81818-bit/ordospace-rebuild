@@ -1,0 +1,12 @@
+.git
+.vercel
+node_modules
+chrome-headless-profile*
+*.png
+*.md
+HARNESS_ENGINEERING_REPORT.md
+dist-react
+react-mvp
+QA_REPORT_FEEDBACK_ITEMS_1_5.md
+backend
+api

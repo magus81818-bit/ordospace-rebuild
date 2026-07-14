@@ -1,0 +1,30 @@
+# Render Blueprint — 대시보드 New > Blueprint 에서 이 레포/폴더를 지정하면
+# 웹 서비스 + 무료 PostgreSQL을 함께 생성한다. (수동 절차는 DEPLOY.md 참고)
+databases:
+  - name: ordospace-db
+    plan: free
+    region: singapore
+
+services:
+  - type: web
+    name: ordospace-backend
+    runtime: node
+    plan: free
+    region: singapore
+    # rootDir: backend  # 레포 루트가 ORDOSPACE_rebuild면 주석 해제
+    buildCommand: npm install && npx prisma generate && npx prisma migrate deploy && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ordospace-db
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: NODE_VERSION
+        value: "24"
+      - key: CORS_ORIGIN
+        sync: false   # 프론트 Vercel 주소를 대시보드에서 직접 입력

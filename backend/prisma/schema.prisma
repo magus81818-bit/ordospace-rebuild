@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  WORKER
+  CLIENT
+}
+
+enum CardStatus {
+  PENDING
+  IN_PROGRESS
+  QC_READY
+  ADMIN_REVIEW
+  CLIENT_REVIEW
+  APPROVED
+  REVISION_REQUESTED
+}
+
+enum QcStatus {
+  PENDING
+  BLOCKED
+  PASSED
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  email    String @unique
+  password String
+  username String
+  role     Role
+
+  assignedCards ModuleCard[] @relation("assignee")
+  ownedProjects Project[]    @relation("clientOwner")
+  comments      Comment[]
+  activities    Activity[]
+}
+
+model Project {
+  id        Int      @id @default(autoincrement())
+  name      String
+  clientId  Int
+  createdAt DateTime @default(now())
+
+  client User         @relation("clientOwner", fields: [clientId], references: [id], onDelete: Cascade)
+  cards  ModuleCard[]
+}
+
+model ModuleCard {
+  id            Int        @id @default(autoincrement())
+  projectId     Int
+  module        String
+  title         String
+  description   String
+  status        CardStatus @default(PENDING)
+  assignedToId  Int?
+  dueDate       DateTime?
+  progress      Int        @default(0)
+  qcStatus      QcStatus   @default(PENDING)
+  revisionCount Int        @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  project    Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignedTo User?      @relation("assignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  comments   Comment[]
+  activities Activity[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  cardId    Int
+  authorId  Int
+  body      String
+  createdAt DateTime @default(now())
+
+  card   ModuleCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  author User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Activity {
+  id         Int         @id @default(autoincrement())
+  cardId     Int
+  actorId    Int
+  type       String
+  fromStatus CardStatus?
+  toStatus   CardStatus?
+  note       String?
+  createdAt  DateTime    @default(now())
+
+  card  ModuleCard @relation(fields: [cardId], references: [id], onDelete: Cascade)
+  actor User       @relation(fields: [actorId], references: [id], onDelete: Cascade)
+}

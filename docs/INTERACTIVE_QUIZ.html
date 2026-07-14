@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ORDOSPACE Code Guide Quiz</title>
+<style>
+:root{--bg:#f7f4ee;--paper:#fffefa;--ink:#1f2328;--muted:#656d76;--line:#d8d0c2;--accent:#0969da;--ok:#1a7f37;--ok-bg:#dafbe1;--err:#cf222e;--err-bg:#ffebe9;--warn-bg:#fff8c5}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;line-height:1.6}
+main{max-width:720px;margin:0 auto;padding:32px 16px 80px}
+h1{font-size:clamp(24px,5vw,36px);margin-bottom:8px}
+.subtitle{color:var(--muted);margin-bottom:32px;font-size:15px}
+.score-bar{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:28px;display:flex;align-items:center;gap:16px;position:sticky;top:8px;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.score-bar .label{font-size:13px;color:var(--muted)}
+.score-bar .num{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.score-bar .pct{font-size:15px;color:var(--muted);margin-left:auto}
+.progress-track{flex:1;height:8px;background:#e8e2d6;border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .4s ease}
+.chapter{margin-bottom:36px}
+.chapter-title{font-size:17px;font-weight:700;padding:10px 0;border-bottom:1px solid var(--line);margin-bottom:16px;color:var(--accent)}
+.q-card{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:18px 20px;margin-bottom:14px;transition:border-color .3s}
+.q-card.correct{border-color:var(--ok)}
+.q-card.wrong{border-color:var(--err)}
+.q-text{font-size:15px;font-weight:600;margin-bottom:12px}
+.q-num{color:var(--muted);font-size:12px;margin-bottom:4px}
+.options{display:flex;flex-direction:column;gap:6px}
+.opt{display:block;width:100%;text-align:left;padding:10px 14px;border:1px solid var(--line);border-radius:8px;background:var(--paper);font-size:14px;cursor:pointer;transition:all .2s;line-height:1.5}
+.opt:hover:not(:disabled){background:#f0ece4;border-color:#b8b0a0}
+.opt:disabled{cursor:default}
+.opt.selected-correct{background:var(--ok-bg);border-color:var(--ok);color:var(--ok);font-weight:600}
+.opt.selected-wrong{background:var(--err-bg);border-color:var(--err);color:var(--err)}
+.opt.reveal-correct{background:var(--ok-bg);border-color:var(--ok)}
+.explain{margin-top:10px;padding:10px 14px;border-radius:8px;font-size:13px;line-height:1.6;display:none}
+.explain.show{display:block}
+.explain.ok{background:var(--ok-bg);color:#0a3d1a}
+.explain.fail{background:var(--err-bg);color:#82071e}
+.result-box{background:var(--paper);border:2px solid var(--accent);border-radius:14px;padding:28px 24px;text-align:center;margin-top:36px;display:none}
+.result-box h2{font-size:22px;margin-bottom:8px}
+.result-box .big{font-size:48px;font-weight:800;color:var(--accent)}
+.result-box .msg{color:var(--muted);margin-top:8px;font-size:15px}
+.retry-btn{margin-top:20px;padding:10px 28px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600}
+.retry-btn:hover{opacity:.85}
+.chapter-title.advanced{color:var(--err);border-bottom-color:var(--err)}
+.chapter-title.advanced::before{content:"★ ";font-size:14px}
+/* ── 반응형 ── */
+@media(max-width:480px){
+  main{padding:16px 12px 60px}
+  .score-bar{flex-wrap:wrap;gap:8px;padding:12px 14px}
+  .score-bar .pct{margin-left:0;width:100%;text-align:center}
+  .progress-track{width:100%;order:3}
+  .opt{padding:12px 14px;font-size:15px;min-height:44px}
+  .q-text{font-size:14px}
+  .retry-btn{width:100%;padding:14px}
+}
+/* ── 접근성: 포커스 표시 ── */
+.opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.retry-btn:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+/* ── 모션 감소 ── */
+@media(prefers-reduced-motion:reduce){
+  .progress-fill{transition:none}
+  .q-card{transition:none}
+  .opt{transition:none}
+}
+</style>
+</head>
+<body>
+<main role="main" aria-label="ORDOSPACE 코드 가이드 퀴즈">
+<h1>ORDOSPACE Code Guide Quiz</h1>
+<p class="subtitle">Geoffrey Litt의 "speed regulator" — 가이드를 읽고 이해했는지 스스로 확인하는 속도 조절기입니다.<br>21문제: 기본 14문제(챕터별 2문제) + 심화 7문제(종합 응용). 모든 문제를 풀어야 총점이 나옵니다.</p>
+
+<div class="score-bar" role="status" aria-live="polite" aria-label="퀴즈 진행 현황">
+  <div><div class="label">맞은 문제</div><div class="num" id="scoreNum" aria-label="맞은 문제 수">0</div></div>
+  <div class="progress-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="21"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="pct" id="pctText">0 / 21</div>
+</div>
+
+<div id="quizRoot"></div>
+<div class="result-box" id="resultBox">
+  <h2>최종 결과</h2>
+  <div class="big" id="resultScore"></div>
+  <div class="msg" id="resultMsg"></div>
+  <button class="retry-btn" onclick="location.reload()">다시 풀기</button>
+</div>
+</main>
+
+<script>
+var DATA = [
+  { chapter:"00 시작하기", questions:[
+    { q:"버튼을 눌러 카드 상태가 바뀔 때, 규칙을 검사하고 저장하는 '심판'은 어느 폴더에 있는가?",
+      opts:["app/config/","app/services/","app/screens/","app/ui/components/"],
+      answer:1,
+      explain:"app/services/module-card-lifecycle.service.js 가 상태 전이 규칙 검사 + 저장을 담당합니다." },
+    { q:"바뀐 데이터는 어디에 저장되는가? (두 군데)",
+      opts:["sessionStorage + IndexedDB","Cookie + 서버 파일","localStorage + Postgres DB","메모리 + Redis"],
+      answer:2,
+      explain:"localStorage(브라우저, 즉시)와 Postgres DB(서버, 0.4초 디바운스 전송) 두 곳에 저장됩니다." }
+  ]},
+  { chapter:"01 앱이 켜질 때", questions:[
+    { q:"이 앱은 화면이 19개인데 HTML 파일은 왜 1개뿐인가?",
+      opts:["서버가 HTML을 동적 생성하기 때문","React가 가상 DOM을 사용하기 때문","모든 화면이 한 건물 안에 숨어있고, 라우터가 하나에만 불을 켜는 방식","iframe으로 각 화면을 로드하기 때문"],
+      answer:2,
+      explain:"SPA 방식: index.html 안에 19개 div가 모두 있고, hash-router가 해시를 보고 하나만 display:block으로 바꿉니다." },
+    { q:"권한 없는 화면 주소로 접근하면 누가 막아주는가?",
+      opts:["app-shell.js의 sidebarGuard()","navigate() 함수의 isRoleAllowed 검사","session.service.js의 validateRole()","hash-router.js의 beforeEach 훅"],
+      answer:1,
+      explain:"navigate() 함수가 라우트 전환 시 isRoleAllowed()로 역할 검사를 하고, 불합격이면 403 화면을 보여줍니다." }
+  ]},
+  { chapter:"02 데이터 사전", questions:[
+    { q:"카드의 status를 화면에서 직접 바꾸면 왜 안 되는가?",
+      opts:["TypeScript 타입 에러가 나기 때문","직접 바꾸면 저장도 안 되고 규칙 검사도 건너뛰게 됨","React의 불변 상태 규칙을 위반하기 때문","서버가 변경을 거부하기 때문"],
+      answer:1,
+      explain:"lifecycle 서비스를 거치지 않으면 localStorage 저장, 서버 전송, 화면 갱신, 감사 로그 기록이 모두 빠집니다." },
+    { q:"worker가 리뷰 요청을 하려면 카드의 어떤 필드가 어떤 상태여야 하는가?",
+      opts:["status가 'pending'이어야 함","attachments가 1개 이상이어야 함","qcChecklist의 모든 항목이 passed: true","comments가 1개 이상이어야 함"],
+      answer:2,
+      explain:"QC 체크리스트를 전부 체크(passed: true)해야 리뷰 요청이 가능합니다. 하나라도 false면 lifecycle이 거부합니다." }
+  ]},
+  { chapter:"03 컴포넌트 사전", questions:[
+    { q:"팩토리 함수가 DOM을 직접 건드리지 않고 HTML 문자열만 돌려주는 이유는?",
+      opts:["성능이 더 빠르기 때문","보안(XSS) 방어를 위해","'만드는 일'과 '붙이는 일'을 분리해서 3개 화면에서 재사용 가능","브라우저 호환성 때문"],
+      answer:2,
+      explain:"팩토리는 순수 함수(같은 입력 = 같은 출력)로, admin/worker/client 3개 화면에서 동일한 팩토리를 공유할 수 있습니다." },
+    { q:"카드의 색조(tone)가 'crit'(빨강)이 되는 조건으로 올바르지 않은 것은?",
+      opts:["수정요청(revision) 상태일 때","마감일이 지났을 때","QC 체크리스트가 50% 미만일 때","작업자가 미배정일 때"],
+      answer:2,
+      explain:"QC 완료율은 tone 판단 기준이 아닙니다. crit은 revision/rejected 상태, 마감 초과, 미배정 시 적용됩니다." }
+  ]},
+  { chapter:"04 카드의 일생", questions:[
+    { q:"worker가 '리뷰 요청' 버튼을 누르려면 충족해야 할 조건 2가지는?",
+      opts:["카드가 pending 상태 + 첨부파일 1개 이상","카드가 내(worker)에게 배정됨 + QC 전부 체크 완료","마감일 이내 + 작업 기록 1건 이상","admin 승인 + 코멘트 작성"],
+      answer:1,
+      explain:"submitWorkerReview() 가드: ① 카드의 assignedTo가 현재 worker ② qcChecklist 전 항목 passed: true." },
+    { q:"persist() 함수가 localStorage와 서버 두 곳에 저장하는 이유는?",
+      opts:["법적 규정 때문","localStorage는 빠르고, 서버는 다른 기기에서도 접근 가능. 한쪽이 죽어도 다른 쪽이 백업","서버 비용을 줄이기 위해","동시 편집을 지원하기 위해"],
+      answer:1,
+      explain:"localStorage는 네트워크 없이 즉시 저장(새로고침 대비), 서버는 영구 보관 + 다른 기기 접근. 이중 보험입니다." }
+  ]},
+  { chapter:"05 저장의 여정", questions:[
+    { q:"체크박스를 0.4초 안에 5번 연타하면 서버에 요청이 몇 번 가는가?",
+      opts:["5번","3번","1번","0번 (localStorage에만 저장)"],
+      answer:2,
+      explain:"0.4초 디바운스가 중간 클릭을 뭉쳐서 마지막 1회만 서버에 전송합니다." },
+    { q:"앱 시작 시 서버의 카드와 로컬의 카드가 다르면 어느 쪽이 이기는가?",
+      opts:["localStorage가 이김 (최신이니까)","서버가 이김 (정본으로 삼아 덮어씀)","충돌 에러가 발생","사용자에게 선택을 물어봄"],
+      answer:1,
+      explain:"hydrate 우선순위: 서버 > localStorage > 시드. hydrateRemote()가 서버 데이터를 정본으로 삼습니다." }
+  ]},
+  { chapter:"06 품질을 지키는 법", questions:[
+    { q:"팩토리가 XSS 공격에 안전한지 어떻게 확인하는가?",
+      opts:["코드 리뷰로만 확인","브라우저에서 수동 테스트","XSS 페이로드를 팩토리에 넣어보고 출력에 script 태그가 남으면 실패","ESLint 규칙으로 자동 검사"],
+      answer:2,
+      explain:"validate-static-components.cjs가 '\\x3cscript\\x3ealert(1)\\x3c/script\\x3e' 같은 페이로드를 19개 팩토리에 넣어보고, 이스케이프되지 않으면 실패합니다." },
+    { q:"새 팩토리를 추가한 뒤 반드시 해야 할 일 2가지는?",
+      opts:["README 업데이트 + npm publish","expected 배열에 이름 추가 + XSS 테스트 케이스 추가","TypeScript 타입 정의 + 단위 테스트","Storybook 등록 + 스냅샷 테스트"],
+      answer:1,
+      explain:"validate-static-components.cjs의 expected 배열에 이름을 추가하고, XSS 케이스도 추가해야 검증이 작동합니다." }
+  ]},
+  { chapter:"심화 — 종합 응용", questions:[
+    { q:"worker 역할로 로그인한 상태에서 브라우저 주소창에 #admin-cards를 직접 입력하면 어떤 일이 일어나는가?",
+      opts:["admin 카드 화면이 그대로 표시된다","페이지가 새로고침되며 에러 발생","navigate()가 isRoleAllowed()를 검사하고 403 화면을 표시","해시만 바뀌고 화면 변화 없음"],
+      answer:2,
+      explain:"navigate() 함수가 라우트 전환 시 isRoleAllowed()로 역할 검사를 하므로, worker가 admin 전용 경로에 접근하면 403 접근 거부 화면을 보여줍니다." },
+    { q:"코드에서 card.status = 'approved'로 직접 변경하고 새로고침하면 카드 상태는 어떻게 되는가?",
+      opts:["approved로 유지된다 (코드가 곧 진실)","서버의 원본 데이터로 덮어써진다 (hydrate 시 서버 우선)","localStorage 값으로 복원된다","에러가 발생하고 앱이 멈춘다"],
+      answer:1,
+      explain:"lifecycle을 거치지 않으면 localStorage 저장과 서버 전송이 빠집니다. 새로고침 시 hydrateRemote()가 서버 데이터를 정본으로 삼아 원래 상태로 되돌립니다." },
+    { q:"worker가 QC 체크 3개를 0.2초 간격으로 클릭한 직후 리뷰 요청을 보내면, 서버에 PUT 요청은 총 몇 번 발생하는가?",
+      opts:["4번 (QC 3회 + 리뷰 1회)","1번 (0.4초 디바운스가 전부 뭉침)","2번 (QC 뭉침 1회 + 리뷰 1회)","3번 (QC는 각각, 리뷰는 별도)"],
+      answer:1,
+      explain:"0.4초 디바운스가 중간 변경을 모두 뭉쳐서, 마지막 상태(QC 완료 + review)만 1회 서버에 전송합니다. 단, localStorage에는 매번 즉시 저장됩니다." },
+    { q:"새 팩토리 함수 MyWidget을 만들고 ORDO_UI_COMPONENTS에 등록했지만 expected 배열에 추가하지 않으면?",
+      opts:["앱은 정상 동작하지만 검증 스크립트가 '미등록 팩토리' 경고","앱 로드 시 에러 발생","XSS 취약점이 생김","아무 문제 없음"],
+      answer:0,
+      explain:"validate-static-components.cjs의 expected 배열에 없으면 검증에서 누락됩니다. 앱은 돌아가지만 XSS 테스트 등 품질 검사에서 빠지게 됩니다." },
+    { q:"같은 팩토리를 admin, worker, client 세 화면에서 모두 사용할 수 있는 근본적인 이유는?",
+      opts:["React의 컴포넌트 시스템 덕분","각 화면마다 팩토리를 복사해두었기 때문","팩토리가 순수 함수(같은 입력=같은 출력)로, IIFE를 통해 전역 네임스페이스에 공유 등록되기 때문","서버가 역할별로 적절한 팩토리를 내려주기 때문"],
+      answer:2,
+      explain:"IIFE 패턴으로 window.ORDO_UI_COMPONENTS 네임스페이스에 등록되고, 팩토리는 DOM을 건드리지 않는 순수 함수이므로 어떤 화면에서든 동일하게 사용 가능합니다." },
+    { q:"수정 요청(requestRevision)이 실행될 때 발생하는 일 중 포함되지 않는 것은?",
+      opts:["QC 체크리스트 전부 초기화","revisionCount 1 증가","카드 status가 'revision'으로 변경","카드 담당자(assignedTo)가 admin으로 변경"],
+      answer:3,
+      explain:"수정 요청 시 QC 초기화, revisionCount 증가, status→revision은 실행되지만, 담당자는 변경되지 않습니다. 원래 배정된 worker가 수정 작업을 계속 담당합니다." },
+    { q:"앱이 처음 켜질 때 데이터를 불러오는 우선순위(hydrate)로 올바른 것은?",
+      opts:["localStorage → 서버 → 시드 데이터","시드 데이터 → localStorage → 서버","서버 → localStorage → 시드 데이터","서버와 localStorage를 병합 → 시드는 무시"],
+      answer:2,
+      explain:"hydrate 우선순위: ① 서버(정본) ② localStorage(오프라인 백업) ③ 시드 데이터(초기 12장). hydrateRemote()가 서버를 먼저 시도합니다." }
+  ]}
+];
+
+var total = 0, correct = 0, answered = 0;
+DATA.forEach(function(ch){ total += ch.questions.length; });
+
+function render(){
+  var root = document.getElementById('quizRoot');
+  var html = '';
+  var qIdx = 0;
+  DATA.forEach(function(ch){
+    var isAdv = ch.chapter.indexOf('심화') === 0;
+    html += '<div class="chapter"><div class="chapter-title' + (isAdv ? ' advanced' : '') + '">' + esc(ch.chapter) + '</div>';
+    ch.questions.forEach(function(q){
+      var id = 'q' + qIdx;
+      html += '<div class="q-card" id="card-' + id + '" role="group" aria-labelledby="qt-' + id + '">';
+      html += '<div class="q-num" aria-hidden="true">Q' + (qIdx+1) + '</div>';
+      html += '<div class="q-text" id="qt-' + id + '">' + esc(q.q) + '</div>';
+      html += '<div class="options" role="radiogroup" aria-labelledby="qt-' + id + '">';
+      q.opts.forEach(function(o, oi){
+        html += '<button class="opt" role="radio" aria-checked="false" data-q="' + id + '" data-oi="' + oi + '" data-ans="' + q.answer + '" onclick="pick(this)">' + esc(o) + '</button>';
+      });
+      html += '</div>';
+      html += '<div class="explain" id="exp-' + id + '" role="alert" aria-live="polite">' + esc(q.explain) + '</div>';
+      html += '</div>';
+      qIdx++;
+    });
+    html += '</div>';
+  });
+  root.innerHTML = html;
+}
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function pick(btn){
+  var qId = btn.getAttribute('data-q');
+  var oi = parseInt(btn.getAttribute('data-oi'));
+  var ans = parseInt(btn.getAttribute('data-ans'));
+  var card = document.getElementById('card-' + qId);
+  if(card.classList.contains('correct') || card.classList.contains('wrong')) return;
+
+  var buttons = card.querySelectorAll('.opt');
+  var isCorrect = oi === ans;
+  answered++;
+
+  buttons.forEach(function(b){
+    b.disabled = true;
+    b.setAttribute('aria-checked', 'false');
+    var bOi = parseInt(b.getAttribute('data-oi'));
+    if(bOi === oi) b.setAttribute('aria-checked', 'true');
+    if(bOi === ans) b.classList.add(isCorrect ? 'selected-correct' : 'reveal-correct');
+    if(bOi === oi && !isCorrect) b.classList.add('selected-wrong');
+  });
+
+  var exp = document.getElementById('exp-' + qId);
+  if(isCorrect){
+    correct++;
+    card.classList.add('correct');
+    exp.className = 'explain show ok';
+  } else {
+    card.classList.add('wrong');
+    exp.className = 'explain show fail';
+  }
+
+  document.getElementById('scoreNum').textContent = correct;
+  document.getElementById('pctText').textContent = answered + ' / ' + total;
+  var pct = Math.round((answered / total) * 100);
+  var progEl = document.getElementById('progressFill');
+  progEl.style.width = pct + '%';
+  progEl.parentElement.setAttribute('aria-valuenow', answered);
+
+  if(answered === total) showResult();
+}
+
+function showResult(){
+  var box = document.getElementById('resultBox');
+  var pct = Math.round((correct / total) * 100);
+  document.getElementById('resultScore').textContent = correct + ' / ' + total + ' (' + pct + '%)';
+  var msg = '';
+  if(pct === 100) msg = 'Perfect! ORDOSPACE 코드를 완벽히 이해하고 있습니다.';
+  else if(pct >= 80) msg = '훌륭합니다! 틀린 문제의 챕터만 다시 읽어보세요.';
+  else if(pct >= 60) msg = '괜찮습니다. 빨간색 문제의 해설을 확인하고 해당 챕터를 복습하세요.';
+  else msg = '가이드를 처음부터 다시 읽어보는 것을 권장합니다. 5분 따라하기를 꼭 직접 해보세요.';
+  document.getElementById('resultMsg').textContent = msg;
+  box.style.display = 'block';
+  box.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+render();
+</script>
+</body>
+</html>

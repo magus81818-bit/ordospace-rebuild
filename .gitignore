@@ -1,0 +1,8 @@
+render-check.png
+vercel-*.png
+dist-react/
+*.log
+node_modules/
+
+.vercel
+.env*
